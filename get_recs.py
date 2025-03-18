@@ -3,8 +3,12 @@ import sqlite3
 import streamlit as st
 from database import save_recommendation
 
-def save_stuff():
-    pass
+# # SAVING MOVIE RECOMMENDATIONS
+def save_stuff(person, title, day, overview):
+    save_recommendation(title, day, overview, person)
+    print(f"Recommendation saved: {(person, title, day, overview)}")
+
+# # END OF SAVING MOVIE RECOMMENDATIONS
 
 def pref_and_recs():
     # TMDB API key and API URL
@@ -38,6 +42,9 @@ def pref_and_recs():
         "Select your preferred Movie Mood:",
         options=["Light-hearted", "Romantic", "Silly", "Sad", "Thrilling"]
     )
+
+    # Step 3a: Initialize Movies
+    movies = []
 
     # Step 3: Button for fetching recommendations
     if st.button("Get Your Picks!!"):
@@ -80,35 +87,37 @@ def pref_and_recs():
 
             if response.status_code == 200:
                 movies = response.json().get("results", [])
-                if movies:
-                    st.subheader("🎥 Recommended Movies:")
-                    for movie in movies[:10]:
-                        col1, col2 = st.columns([1, 4])
-
-                        with col1:
-                            poster_path = movie.get("poster_path")
-                            if poster_path:
-                                poster_url = f"{IMAGE_BASE_URL}{poster_path}"
-                                st.image(poster_url, width=120, caption=movie['title'])
-                            else:
-                                st.write("No Poster Available")
-
-                        with col2:
-                            st.write(f"**Title**: {movie['title']}")
-                            st.write(f"**Release Date**: {movie.get('release_date', 'N/A')}")
-                            st.write(f"**Synopsis**: {movie.get('overview', 'No synopsis available.')}")
-                            print(st.session_state["current_user"])
-
-                            # Save movie to the database for the current user
-                            if st.button(f"Save '{movie['title']}'", key=f"save-{movie['id']}"):
-                                username = st.session_state["current_user"]
-                                print(username)
-                                if username:
-                                    save_recommendation(username, movie['title'], movie.get('release_date', 'N/A'), movie.get('overview', 'No synopsis available.'))
-                                    st.success(f"'{movie['title']}' has been saved to your recommendations!")
-                           
-                            st.write("--------")
-                else:
-                    st.info("No movies found matching your preferences.")
             else:
                 st.error("Failed to fetch movie recommendations. Please try again later.")
+    # End of Get your picks!!!
+    
+    # Step 4: The Button fetched the movies, now to save movies!
+    if movies:
+        st.subheader("🎥 Recommended Movies:")
+                    
+        for movie in movies[:10]:
+            col1, col2 = st.columns([1, 4])
+            poster_path = movie["poster_path"]
+            movie_title = movie.get('title', 'Title not found!')
+
+            with col1:
+                if poster_path:
+                    poster_url = f"{IMAGE_BASE_URL}{poster_path}"
+                    st.image(poster_url, width=120, caption=movie['title'])
+                else:
+                    st.write("No Poster Available")
+
+            with col2:
+                st.write(f"**Title**: {movie_title}")
+                st.write(f"**Release Date**: {movie.get('release_date', 'N/A')}")
+                st.write(f"**Synopsis**: {movie.get('overview', 'No synopsis available.')}")
+
+                current_person = st.session_state["current_user"]
+
+                if st.button(f"Save '{movie['title']}'", key=f"save-{movie['id']}", on_click=save_stuff, args=[current_person, movie['title'], movie.get('release_date', 'N/A'), movie.get('overview', 'No synopsis available.')]):
+                    pass
+                
+                st.write("--------")
+    else:
+        st.info("No movies found matching your preferences.")
+                
